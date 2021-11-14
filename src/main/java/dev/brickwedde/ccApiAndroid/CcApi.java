@@ -30,6 +30,7 @@ import java.util.Map;
 public class CcApi {
     private String endpoint;
     private String sessionKey;
+    private String token;
     private RequestQueue queue;
 
     private static final long SYNC_FREQUENCY = 60 * 60;  // 1 hour (in seconds)
@@ -45,28 +46,31 @@ public class CcApi {
 
     public void setSessionKey(String sessionkey, Context context) {
         this.sessionKey = sessionkey;
-        saveSessionKeyToAccount(context, sessionKey);
+        saveSessionKeyToAccount(context, sessionKey, endpoint);
     }
 
-    public boolean hasSessionKey(Context context) {
-        if (sessionKey == null) {
-            sessionKey = getSessionKeyFromAccount(context);
-        }
-        return sessionKey != null;
-    }
-
-    public static String getSessionKeyFromAccount(Context context) {
+    public boolean preloadSessionKey(Context context) {
         try {
             Account account = GenericAccountService.GetAccount(ACCOUNT_TYPE);
             AccountManager accountManager =
                     (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
-            return accountManager.getPassword(account);
+            String s = accountManager.getPassword(account);
+            if (s == null) {
+                return false;
+            }
+            sessionKey = s;
+
+            s = accountManager.getUserData(account, "host");
+            if (s != null) {
+                endpoint = s;
+            }
+            return true;
         } catch (Exception e) {
         }
-        return null;
+        return false;
     }
 
-    public static void saveSessionKeyToAccount(Context context, String sessionKey) {
+    public static void saveSessionKeyToAccount(Context context, String sessionKey, String endpoint) {
         boolean newAccount = false;
         boolean setupComplete = PreferenceManager
                 .getDefaultSharedPreferences(context).getBoolean(PREF_SETUP_COMPLETE, false);
@@ -75,7 +79,9 @@ public class CcApi {
         Account account = GenericAccountService.GetAccount(ACCOUNT_TYPE);
         AccountManager accountManager =
                 (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
-        if (accountManager.addAccountExplicitly(account, sessionKey, null)) {
+        Bundle userdata = new Bundle();
+        userdata.putString("host", endpoint);
+        if (accountManager.addAccountExplicitly(account, sessionKey, userdata)) {
             ContentResolver.setIsSyncable(account, CONTENT_AUTHORITY, 1);
             ContentResolver.setSyncAutomatically(account, CONTENT_AUTHORITY, true);
             ContentResolver.addPeriodicSync(
@@ -92,6 +98,23 @@ public class CcApi {
     public static void gotoLogin(Activity activity, Class<?> activityClass) {
         Intent intent = new Intent(activity, activityClass);
         activity.startActivity(intent);
+    }
+
+    public void setFCMToken(Context context, String token) {
+        this.token = token;
+        updateFCMToken(context);
+    }
+
+    public void updateFCMToken(Context context) {
+        call(new Handler(context.getMainLooper()), new Callback() {
+            @Override
+            public void then(JSONObject o, JSONArray a) throws Exception {
+            }
+
+            @Override
+            public void catchy(Exception e, int status, String content) {
+            }
+        }, "updateFCMToken", token);
     }
 
     public static interface Callback {
