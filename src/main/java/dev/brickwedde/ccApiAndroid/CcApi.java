@@ -1,4 +1,4 @@
-package dev.brickwedde.curacaomanagement;
+package dev.brickwedde.ccApiAndroid;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -38,7 +38,7 @@ public class CcApi {
     // Value below must match the account type specified in res/xml/syncadapter.xml
     public static final String ACCOUNT_TYPE = "dev.brickwedde.curacaomanagement.ccapi.account";
 
-    CcApi(String endpoint, Context context) {
+    public CcApi(String endpoint, Context context) {
         this.endpoint = endpoint;
         queue = Volley.newRequestQueue(context);
     }
@@ -89,8 +89,8 @@ public class CcApi {
         }
     }
 
-    public static void gotoLogin(Activity activity) {
-        Intent intent = new Intent(activity, LoginActivity.class);
+    public static void gotoLogin(Activity activity, Class<?> activityClass) {
+        Intent intent = new Intent(activity, activityClass);
         activity.startActivity(intent);
     }
 
@@ -99,7 +99,7 @@ public class CcApi {
         void catchy(Exception e, int status, String content);
     }
 
-    void call(final Handler h, Callback cb, String function, Object ...args) {
+    public void call(final Handler h, Callback cb, String function, Object... args) {
         String url = this.endpoint + "/" + function;
 
         JSONArray a = new JSONArray();
