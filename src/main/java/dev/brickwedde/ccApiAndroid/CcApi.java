@@ -107,12 +107,11 @@ public class CcApi {
 
     public void updateFCMToken(Context context) {
         call(new Handler(context.getMainLooper()), new Callback() {
-            @Override
             public void then(JSONObject o, JSONArray a) throws Exception {
             }
-
-            @Override
             public void catchy(Exception e, int status, String content) {
+            }
+            public void finallie() {
             }
         }, "updateFCMToken", token);
     }
@@ -120,6 +119,7 @@ public class CcApi {
     public static interface Callback {
         void then(JSONObject o, JSONArray a) throws Exception;
         void catchy(Exception e, int status, String content);
+        void finallie();
     }
 
     public void call(final Handler h, Callback cb, String function, Object... args) {
@@ -153,13 +153,19 @@ public class CcApi {
                                     cb.then(o, a);
                                 } catch (Exception e) {
                                     cb.catchy(e, 200, response);
+                                } finally {
+                                    cb.finallie();
                                 }
                             }
                         }, 0);
                     } catch (Exception e) {
                         h.postDelayed(new Runnable() {
                             public void run() {
-                                cb.catchy(e, 200, response);
+                                try {
+                                    cb.catchy(e, 200, response);
+                                } finally {
+                                    cb.finallie();
+                                }
                             }
                         }, 0);
                     }
