@@ -28,76 +28,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CcApi {
-    private String endpoint;
+    public String endpoint;
     private String sessionKey;
     private String token;
     private RequestQueue queue;
 
-    private static final long SYNC_FREQUENCY = 60 * 60;  // 1 hour (in seconds)
-    private static final String CONTENT_AUTHORITY = "dev.brickwedde.curacaomanagement.ccapi";
-    private static final String PREF_SETUP_COMPLETE = "setup_complete";
-    // Value below must match the account type specified in res/xml/syncadapter.xml
-    public static final String ACCOUNT_TYPE = "dev.brickwedde.curacaomanagement.ccapi.account";
-
-    public CcApi(String endpoint, Context context) {
+    public CcApi(String endpoint, String sessionKey, Context context) {
         this.endpoint = endpoint;
+        this.sessionKey = sessionKey;
         queue = Volley.newRequestQueue(context);
     }
 
     public void setSessionKey(String sessionkey, Context context) {
         this.sessionKey = sessionkey;
-        saveSessionKeyToAccount(context, sessionKey, endpoint);
-    }
-
-    public boolean preloadSessionKey(Context context) {
-        try {
-            Account account = GenericAccountService.GetAccount(ACCOUNT_TYPE);
-            AccountManager accountManager =
-                    (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
-            String s = accountManager.getPassword(account);
-            if (s == null) {
-                return false;
-            }
-            sessionKey = s;
-
-            s = accountManager.getUserData(account, "host");
-            if (s != null) {
-                endpoint = s;
-            }
-            return true;
-        } catch (Exception e) {
-        }
-        return false;
-    }
-
-    public static void saveSessionKeyToAccount(Context context, String sessionKey, String endpoint) {
-        boolean newAccount = false;
-        boolean setupComplete = PreferenceManager
-                .getDefaultSharedPreferences(context).getBoolean(PREF_SETUP_COMPLETE, false);
-
-        // Create account, if it's missing. (Either first run, or user has deleted account.)
-        Account account = GenericAccountService.GetAccount(ACCOUNT_TYPE);
-        AccountManager accountManager =
-                (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
-        Bundle userdata = new Bundle();
-        userdata.putString("host", endpoint);
-        if (accountManager.addAccountExplicitly(account, sessionKey, userdata)) {
-            ContentResolver.setIsSyncable(account, CONTENT_AUTHORITY, 1);
-            ContentResolver.setSyncAutomatically(account, CONTENT_AUTHORITY, true);
-            ContentResolver.addPeriodicSync(
-                    account, CONTENT_AUTHORITY, new Bundle(),SYNC_FREQUENCY);
-            newAccount = true;
-        }
-
-        if (newAccount || !setupComplete) {
-            PreferenceManager.getDefaultSharedPreferences(context).edit()
-                    .putBoolean(PREF_SETUP_COMPLETE, true).commit();
-        }
-    }
-
-    public static void gotoLogin(Activity activity, Class<?> activityClass) {
-        Intent intent = new Intent(activity, activityClass);
-        activity.startActivity(intent);
     }
 
     public void setFCMToken(Context context, String token) {

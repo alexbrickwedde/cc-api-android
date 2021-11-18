@@ -19,20 +19,55 @@ package dev.brickwedde.ccApiAndroid;
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
+import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
 import android.app.Service;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 public class GenericAccountService extends Service {
     private static final String TAG = "GenericAccountService";
     private Authenticator mAuthenticator;
 
-    public static Account GetAccount(String accountType) {
-        return new Account("sessionkey", accountType);
+    public static Account GetAccount(String accountType, String name) {
+        return new Account(name, accountType);
+    }
+
+    private static final long SYNC_FREQUENCY = 60 * 60;  // 1 hour (in seconds)
+    private static final String CONTENT_AUTHORITY = "dev.brickwedde.curacaomanagement.ccapi";
+    private static final String PREF_SETUP_COMPLETE = "setup_complete";
+    // Value below must match the account type specified in res/xml/syncadapter.xml
+    public static final String ACCOUNT_TYPE = "dev.brickwedde.curacaomanagement.ccapi.account";
+
+    public static void saveSessionKeyToAccount(Context context, String sessionKey, String username, String host) {
+        boolean newAccount = false;
+        boolean setupComplete = PreferenceManager
+                .getDefaultSharedPreferences(context).getBoolean(PREF_SETUP_COMPLETE, false);
+
+        // Create account, if it's missing. (Either first run, or user has deleted account.)
+        Account account = GenericAccountService.GetAccount(ACCOUNT_TYPE, username + "@" + host);
+        AccountManager accountManager =
+                (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
+        Bundle userdata = new Bundle();
+        userdata.putString("username", username);
+        userdata.putString("host", host);
+        if (accountManager.addAccountExplicitly(account, sessionKey, userdata)) {
+            ContentResolver.setIsSyncable(account, CONTENT_AUTHORITY, 1);
+            ContentResolver.setSyncAutomatically(account, CONTENT_AUTHORITY, true);
+            ContentResolver.addPeriodicSync(
+                    account, CONTENT_AUTHORITY, new Bundle(),SYNC_FREQUENCY);
+            newAccount = true;
+        }
+
+        if (newAccount || !setupComplete) {
+            PreferenceManager.getDefaultSharedPreferences(context).edit()
+                    .putBoolean(PREF_SETUP_COMPLETE, true).commit();
+        }
     }
 
     @Override
