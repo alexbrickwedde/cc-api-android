@@ -24,6 +24,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONStringer;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -132,7 +134,7 @@ public class CcApi {
             @Override
             public byte[] getBody() throws AuthFailureError {
                 String s = a.toString();
-                return s.getBytes();
+                return s.getBytes(StandardCharsets.UTF_8);
             }
 
             @Override
